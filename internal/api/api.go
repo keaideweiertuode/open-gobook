@@ -63,8 +63,9 @@ func handleListTransactions(w http.ResponseWriter, r *http.Request) {
 	
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")
+	category := r.URL.Query().Get("category")
 	page := 1
-	pageSize := 0 // 0 means no limit by default to support old frontend, or wait, if we default to 0, frontend keeps working. But we can default to 0 so we don't break frontend. Wait, user said "Go API 需要加 page、pageSize 参数".
+	pageSize := 0 // 0 means no limit by default to support old frontend
 	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 		page = p
 	}
@@ -72,7 +73,7 @@ func handleListTransactions(w http.ResponseWriter, r *http.Request) {
 		pageSize = ps
 	}
 
-	list, total, err := db.QueryTransactions(period, page, pageSize)
+	list, total, err := db.QueryTransactions(period, category, page, pageSize)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "获取明细列表失败")
 		return
@@ -178,11 +179,12 @@ func handleAvailableYears(w http.ResponseWriter, r *http.Request) {
 func handleExport(w http.ResponseWriter, r *http.Request) {
 	period := r.URL.Query().Get("period")
 	format := r.URL.Query().Get("format")
+	category := r.URL.Query().Get("category")
 	if format == "" {
 		format = "csv"
 	}
 
-	list, _, err := db.QueryTransactions(period, 1, 0)
+	list, _, err := db.QueryTransactions(period, category, 1, 0)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "获取导出数据失败")
 		return

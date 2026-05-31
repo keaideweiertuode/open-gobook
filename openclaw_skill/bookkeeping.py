@@ -167,6 +167,10 @@ def list_recent_transactions(period: str, category: str = "", page: int = 1, pag
         str: 账单明细列表与分页信息。
     """
     url = f"http://localhost:8080/api/transactions/list?period={period}&page={page}&pageSize={page_size}"
+    if category:
+        import urllib.parse
+        url += f"&category={urllib.parse.quote(category)}"
+        
     try:
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
@@ -179,14 +183,9 @@ def list_recent_transactions(period: str, category: str = "", page: int = 1, pag
                 data = res_data.get("data", [])
                 total = res_data.get("total", 0)
                 
-            # 按分类筛选（如果后端没有实现分类过滤，我们需要在前端截断前过滤）
-            # 注意：如果后端分页了，我们在 Python 端过滤会破坏分页逻辑！
-            # 最好是后端支持 category 查询参数。如果当前不支持，我们只能在当前页中过滤。
-            if category:
-                data = [t for t in data if t.get("category_name") == category]
-            
             if not data:
-                return f"📋 {period} (第 {page} 页) 暂无流水记录。"
+                cat_str = f" [{category}]" if category else ""
+                return f"📋 {period}{cat_str} (第 {page} 页) 暂无流水记录。"
             
             lines = []
             for t in data:

@@ -118,39 +118,52 @@ func DeleteTransaction(id int) error {
 
 
 
-// 【新增】获取指定时间区间内所有的流水明细列表（支持年月日降序排列，支持分页）
-func QueryTransactions(period string, page, pageSize int) ([]models.TransactionDetail, int, error) {
+// 【新增】获取指定时间区间内所有的流水明细列表（支持年月日降序排列，支持分页和分类筛选）
+func QueryTransactions(period, category string, page, pageSize int) ([]models.TransactionDetail, int, error) {
 	var countQuery string
 	var query string
 	var args []any
+	var countArgs []any
 
 	if len(period) == 10 {
-		countQuery = `SELECT count(*) FROM transactions WHERE transaction_date = ?`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.transaction_date = ?`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE t.transaction_date = ? ORDER BY t.id DESC`
+				 WHERE t.transaction_date = ?`
 		args = append(args, period)
+		countArgs = append(countArgs, period)
 	} else if len(period) == 7 {
-		countQuery = `SELECT count(*) FROM transactions WHERE strftime('%Y-%m', transaction_date) = ?`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE strftime('%Y-%m', t.transaction_date) = ?`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE strftime('%Y-%m', t.transaction_date) = ? ORDER BY t.transaction_date DESC, t.id DESC`
+				 WHERE strftime('%Y-%m', t.transaction_date) = ?`
 		args = append(args, period)
+		countArgs = append(countArgs, period)
 	} else if len(period) == 4 {
-		countQuery = `SELECT count(*) FROM transactions WHERE strftime('%Y', transaction_date) = ?`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE strftime('%Y', t.transaction_date) = ?`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE strftime('%Y', t.transaction_date) = ? ORDER BY t.transaction_date DESC, t.id DESC`
+				 WHERE strftime('%Y', t.transaction_date) = ?`
 		args = append(args, period)
+		countArgs = append(countArgs, period)
 	} else {
-		countQuery = `SELECT count(*) FROM transactions`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE 1=1`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 ORDER BY t.transaction_date DESC, t.id DESC`
+				 WHERE 1=1`
 	}
 
+	if category != "" {
+		countQuery += ` AND c.name = ?`
+		query += ` AND c.name = ?`
+		args = append(args, category)
+		countArgs = append(countArgs, category)
+	}
+
+	query += ` ORDER BY t.transaction_date DESC, t.id DESC`
+
 	var total int
-	if err := db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+	if err := db.QueryRow(countQuery, countArgs...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
