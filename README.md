@@ -121,7 +121,7 @@ journalctl -u gobook -f
 |------|------|------|
 | `POST` | `/api/transactions` | 创建账单（body: amount, category, remark, raw_text） |
 | `POST`/`DELETE` | `/api/transactions/delete?id=N` | 物理删除账单 (双路由支持) |
-| `GET` | `/api/transactions/list?period=2026-05-27` | 流水明细列表 |
+| `GET` | `/api/transactions/list?period=2026-05&page=1&pageSize=20` | 流水明细列表（支持分页和统计总数） |
 | `GET` | `/api/stats/daily?period=2026-05` | 双轨收支统计 |
 | `GET` | `/api/stats/category?period=2026-05` | 支出分类排行 |
 | `GET` | `/api/stats/years` | 可用年份选项 |
@@ -228,7 +228,7 @@ GoBook 配有完整的 OpenClaw Skill（位于项目根目录的 `openclaw_skill
 | 收入 | "股票基金收益到账 1500" | 调用 `record_financial_transaction` |
 | 删除 | "把 #15 那笔删了" | 调用 `delete_financial_transaction_by_id` |
 | 查账 | "这个月花了多少" | 调用 `query_financial_summary` |
-| 明细 | "看看今天的流水" | 调用 `list_recent_transactions` |
+| 明细 | "看看今年的流水，看第二页" | 调用 `list_recent_transactions`（支持自动翻页） |
 | 导出 | "把本月账单导出成 CSV" | 调用 `export_financial_data` |
 
 **安装方法：**
