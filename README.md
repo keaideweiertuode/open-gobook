@@ -224,16 +224,17 @@ GoBook 配有完整的 OpenClaw Skill（位于项目根目录的 `openclaw_skill
 
 | 场景 | 用户说 | Agent 行为 |
 |------|--------|-----------|
-| 支出 | "刚才打车花了 32.5" | `POST /api/transactions` 记入交通支出 |
-| 收入 | "股票基金收益到账 1500" | `POST /api/transactions` 记入收入 |
-| 删除 | "把 #15 那笔删了" | `POST /api/transactions/delete?id=15` 物理擦除 |
-| 导出 | "帮我把本月账单导出成 CSV" | `GET /api/export` 下载全量或区间账单 |
-| 查账 | "这个月花了多少" | GET 统计接口查询并汇总 |
+| 支出 | "刚才打车花了 32.5" | 调用 `record_financial_transaction` |
+| 收入 | "股票基金收益到账 1500" | 调用 `record_financial_transaction` |
+| 删除 | "把 #15 那笔删了" | 调用 `delete_financial_transaction_by_id` |
+| 查账 | "这个月花了多少" | 调用 `query_financial_summary` |
+| 明细 | "看看今天的流水" | 调用 `list_recent_transactions` |
+| 导出 | "把本月账单导出成 CSV" | 调用 `export_financial_data` |
 
 **安装方法：**
 将本项目中的 `openclaw_skill/` 目录复制到您本机的 OpenClaw Skills 目录（通常为 `~/.openclaw/workspace/skills/gobook`）下即可。
 
-- `bookkeeping.py` — 多个工具函数（记账 + 删除 + 导出）
+- `bookkeeping.py` — 核心工具函数（记账、删除、查账汇总、查明细、导出）
 - `SKILL.md` — 完整触发规则与使用文档
 
 ---
