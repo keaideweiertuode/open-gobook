@@ -51,7 +51,11 @@ go build -o bin/gobook ./cmd/gobook
 ./bin/gobook              # Web 模式 → http://localhost:8080
 ./bin/gobook 吃饭 25      # CLI 记账模式
 
-# 执行自动化测试 (内存模式无痕测试)
+### 自动化测试保障
+
+本项目内建了严格的单元与集成测试，覆盖了核心 API 及数据库逻辑，全程使用 `:memory:` 纯内存数据库，**无痕测试不脏账本**。
+
+```bash
 go test -v ./internal/...
 ```
 
@@ -149,6 +153,8 @@ gobook/
 ├── gemini.md               # 备忘文档
 ├── data/
 │   ├── my_money.db         # SQLite 数据库（运行后自动生成）
+│   ├── my_money.db-wal     # SQLite 预写式日志（保持超高读写性能的关键文件）
+│   ├── my_money.db-shm     # SQLite 共享内存映射索引文件
 │   └── *.csv               # CSV 数据文件
 ├── go.mod                  # Go 模块依赖
 ├── go.sum                  # 依赖校验和
@@ -235,6 +241,8 @@ GoBook 配有完整的 OpenClaw Skill（位于项目根目录的 `openclaw_skill
 ## 安全与异地灾备
 
 本系统为 **100% 纯本地私有化部署**，无任何外网主动上报逻辑。建议通过 crontab + `auto_backup.sh` 将 `my_money.db` 定期同步至 GitHub 私有仓库，确保数据终身不失。
+
+> **⚠️ 备份警告**：由于启用了极致性能的 `PRAGMA journal_mode=WAL;`，在手动拷贝备份时，**必须同时备份 `my_money.db`、`my_money.db-wal`、`my_money.db-shm` 这三个文件**，缺一不可！否则可能导致近期新增账单丢失。
 
 ---
 
