@@ -214,18 +214,20 @@ crontab -e
 
 ## 集成：OpenClaw Agent
 
-GoBook 配有完整的 OpenClaw Skill（位于 `skills/gobook/` 目录），安装后可通过自然语言记账：
+GoBook 配有完整的 OpenClaw Skill（位于项目根目录的 `openclaw_skill/` 文件夹），安装后可通过自然语言记账：
 
 | 场景 | 用户说 | Agent 行为 |
 |------|--------|-----------|
 | 支出 | "刚才打车花了 32.5" | `POST /api/transactions` 记入交通支出 |
 | 收入 | "股票基金收益到账 1500" | `POST /api/transactions` 记入收入 |
 | 删除 | "把 #15 那笔删了" | `POST /api/transactions/delete?id=15` 物理擦除 |
+| 导出 | "帮我把本月账单导出成 CSV" | `GET /api/export` 下载全量或区间账单 |
 | 查账 | "这个月花了多少" | GET 统计接口查询并汇总 |
 
-Skill 路径：`/home/ian/.openclaw/workspace/skills/gobook/`
+**安装方法：**
+将本项目中的 `openclaw_skill/` 目录复制到您本机的 OpenClaw Skills 目录（通常为 `~/.openclaw/workspace/skills/gobook`）下即可。
 
-- `bookkeeping.py` — 两个工具函数（记账 + 删除）
+- `bookkeeping.py` — 多个工具函数（记账 + 删除 + 导出）
 - `SKILL.md` — 完整触发规则与使用文档
 
 ---
