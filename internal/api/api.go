@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv" // 【新增】用于解析字符串到整型ID
 	"time"
@@ -47,9 +48,9 @@ func StartWebServer() {
 	http.HandleFunc("GET /api/export", handleExport)
 
 	port := ":8080"
-	fmt.Printf("🚀 Web UI & API 服务已启动: http://localhost%s\n", port)
+	slog.Info("Web UI & API 服务已启动", "url", "http://localhost"+port)
 	if err := http.ListenAndServe(port, corsMiddleware(http.DefaultServeMux)); err != nil {
-		fmt.Printf("Web 服务启动失败: %v\n", err)
+		slog.Error("Web 服务启动失败", "error", err)
 	}
 }
 
