@@ -61,7 +61,18 @@ func handleListTransactions(w http.ResponseWriter, r *http.Request) {
 		period = time.Now().Format("2006-01-02")
 	}
 	
-	list, err := db.QueryTransactions(period)
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
+	page := 1
+	pageSize := 0 // 0 means no limit by default to support old frontend, or wait, if we default to 0, frontend keeps working. But we can default to 0 so we don't break frontend. Wait, user said "Go API 需要加 page、pageSize 参数".
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+	if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 {
+		pageSize = ps
+	}
+
+	list, total, err := db.QueryTransactions(period, page, pageSize)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "获取明细列表失败")
 		return
@@ -71,7 +82,17 @@ func handleListTransactions(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(list)
+	// 如果明确传递了 pageSize，我们返回带分页结构的数据，否则返回纯数组（兼容旧版前端）
+	if pageSize > 0 {
+		json.NewEncoder(w).Encode(map[string]any{
+			"total": total,
+			"page": page,
+			"pageSize": pageSize,
+			"data": list,
+		})
+	} else {
+		json.NewEncoder(w).Encode(list)
+	}
 }
 
 // 【新增】处理物理删除路由 (支持 DELETE 和 POST 方法)
@@ -161,7 +182,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		format = "csv"
 	}
 
-	list, err := db.QueryTransactions(period)
+	list, _, err := db.QueryTransactions(period, 1, 0)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "获取导出数据失败")
 		return

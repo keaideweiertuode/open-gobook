@@ -118,35 +118,53 @@ func DeleteTransaction(id int) error {
 
 
 
-// 【新增】获取指定时间区间内所有的流水明细列表（支持年月日降序排列）
-func QueryTransactions(period string) ([]models.TransactionDetail, error) {
+// 【新增】获取指定时间区间内所有的流水明细列表（支持年月日降序排列，支持分页）
+func QueryTransactions(period string, page, pageSize int) ([]models.TransactionDetail, int, error) {
+	var countQuery string
 	var query string
 	var args []any
 
 	if len(period) == 10 {
+		countQuery = `SELECT count(*) FROM transactions WHERE transaction_date = ?`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
 				 WHERE t.transaction_date = ? ORDER BY t.id DESC`
 		args = append(args, period)
 	} else if len(period) == 7 {
+		countQuery = `SELECT count(*) FROM transactions WHERE strftime('%Y-%m', transaction_date) = ?`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
 				 WHERE strftime('%Y-%m', t.transaction_date) = ? ORDER BY t.transaction_date DESC, t.id DESC`
 		args = append(args, period)
 	} else if len(period) == 4 {
+		countQuery = `SELECT count(*) FROM transactions WHERE strftime('%Y', transaction_date) = ?`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
 				 WHERE strftime('%Y', t.transaction_date) = ? ORDER BY t.transaction_date DESC, t.id DESC`
 		args = append(args, period)
 	} else {
+		countQuery = `SELECT count(*) FROM transactions`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
 				 ORDER BY t.transaction_date DESC, t.id DESC`
 	}
 
+	var total int
+	if err := db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	if pageSize > 0 {
+		if page < 1 {
+			page = 1
+		}
+		offset := (page - 1) * pageSize
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", pageSize, offset)
+	}
+
 	rows, err := db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -154,11 +172,11 @@ func QueryTransactions(period string) ([]models.TransactionDetail, error) {
 	for rows.Next() {
 		var t models.TransactionDetail
 		if err := rows.Scan(&t.ID, &t.Amount, &t.Type, &t.CategoryName, &t.TransactionDate, &t.Remark); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, t)
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func GetCategoryDetailsByName(name string) (int, string, error) {

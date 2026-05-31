@@ -126,8 +126,80 @@ result = export_financial_data(
 → 回复："✅ 导出成功！2026-05 的财务明细数据已保存至本地文件：/xxx/gobook_export_2026-05.csv"
 ```
 
-### 4. 查询统计（HTTP GET）
+### 4. query_financial_summary — 查账统计
 
+当用户询问特定时间段花了多少钱、存了多少钱、结余多少时调用此工具。
+
+```python
+import sys; sys.path.insert(0, '{baseDir}')
+from bookkeeping import query_financial_summary
+
+result = query_financial_summary(
+    period=<str>   # 查询周期（"YYYY"、"YYYY-MM" 或 "YYYY-MM-DD"）
+)
+```
+
+**使用示例：**
+```
+用户说："这个月花了多少"
+→ query_financial_summary(period="2026-05")
+→ 回复："📊 2026-05 汇总：收入 ¥...，支出 ¥...，净结余 ¥..."
+```
+
+### 5. list_recent_transactions — 查账流水
+
+当用户要看具体的消费明细、核对账单时调用此工具。
+
+```python
+import sys; sys.path.insert(0, '{baseDir}')
+from bookkeeping import list_recent_transactions
+
+result = list_recent_transactions(
+    period=<str>,      # 查询周期（"YYYY"、"YYYY-MM" 或 "YYYY-MM-DD"）
+    category=<str>,    # 可选，按分类筛选（如 "三餐"），留空显示全部
+    page=<int>,        # 可选，请求的页码，默认为 1。配合翻页使用。
+    page_size=<int>    # 可选，每页展示数，默认为 20。
+)
+```
+
+**使用示例：**
+```
+用户说："看看今天的流水"
+→ list_recent_transactions(period="2026-05-31")
+
+用户说："看看上个月交通花了多少"
+→ list_recent_transactions(period="2026-04", category="交通")
+
+用户说："我要看今年流水的第二页"
+→ list_recent_transactions(period="2026", page=2)
+```
+
+### 6. query_category_ranking — 分类排行
+
+当用户问某种时间段哪类消费最多、排名前三、分类占比时调用此工具。
+
+```python
+import sys; sys.path.insert(0, '{baseDir}')
+from bookkeeping import query_category_ranking
+
+result = query_category_ranking(
+    period=<str>,     # 时间跨度（"YYYY"、"YYYY-MM"、"YYYY-MM-DD"）
+    top_n=<int>       # 可选，返回前 N 个分类，默认 10
+)
+```
+
+**使用示例：**
+```
+用户说："今年花钱最多的地方是哪儿"
+→ query_category_ranking(period="2026")
+
+用户说："上个月消费前三是什么"
+→ query_category_ranking(period="2026-04", top_n=3)
+```
+
+### 7. 查询统计（HTTP GET） (内部 API 参考)
+
+如果你需要自行调用 HTTP API 获取更复杂的数据分布（例如分类排行）：
 | 接口 | 参数 | 说明 |
 |------|------|------|
 | `GET /api/stats/daily?period=2026-05` | period: YYYY-MM-DD / YYYY-MM / YYYY | 双轨收支统计（支出+收入） |
@@ -136,7 +208,7 @@ result = export_financial_data(
 | `GET /api/transactions/list?period=2026-05-27` | period: YYYY-MM-DD / YYYY-MM / YYYY | 流水明细列表（含 ID、金额、分类、备注） |
 | `GET /api/export?period=2026-05` | period: YYYY-MM-DD / YYYY-MM / YYYY (可选) | 导出账单明细（CSV格式，带 UTF-8 BOM） |
 
-### 5. 终端 CLI 记账
+### 8. 终端 CLI 记账
 
 ```bash
 cd /home/ian/vscode/Go/gobook && ./gobook <描述词> <金额>
@@ -150,7 +222,7 @@ cd /home/ian/vscode/Go/gobook && ./gobook <描述词> <金额>
 ./gobook 打车去机场 120
 ```
 
-### 6. Web 看板
+### 9. Web 看板
 
 浏览器打开 `http://localhost:8080`，查看充满科技感（Cyberpunk 风格）的日/月/年三级联动赛博 AI 收支看板。
 
@@ -170,8 +242,9 @@ cd /home/ian/vscode/Go/gobook && ./gobook <描述词> <金额>
 | **记账（收入）** | "发工资了"、"到账了XX"、"收到了XX钱"、"入账" | `record_financial_transaction` |
 | **删除/擦除** | "删掉"、"#15那笔删了"、"擦除"、"撤销账单" | `delete_financial_transaction_by_id` |
 | **数据导出** | "导出本月账单"、"把账单备份成CSV"、"帮我下载明细" | `export_financial_data` |
-| **查账/统计** | "这个月花了多少"、"上个月支出"、"本月分类排行" | 使用 GET API 查询 |
-| **查明细** | "看看今天的流水"、"上个月的明细"、"列表" | `GET /api/transactions/list` |
+| **查账/统计** | "这个月花了多少"、"上个月支出"、"本月结余" | `query_financial_summary` |
+| **查明细** | "看看今天的流水"、"上个月的明细"、"列表" | `list_recent_transactions` |
+| **分类排行** | "花钱最多的是哪儿"、"消费前三"、"支出占比" | `query_category_ranking` |
 
 ## 注意事项
 

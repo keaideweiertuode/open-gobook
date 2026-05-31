@@ -92,3 +92,112 @@ def export_financial_data(period: str = "") -> str:
         return "❌ 连接失败：未检测到本地核心财务 API。请确认 Go 服务是否在 localhost:8080 挂起运行。"
     except Exception as e:
         return f"❌ 运行异常：执行导出工具时发生错误: {str(e)}"
+
+def query_financial_summary(period: str) -> str:
+    """
+    查询指定时间段的收支汇总（收入、支出、净结余）。
+    
+    Args:
+        period (str): 时间跨度，格式 "YYYY", "YYYY-MM", "YYYY-MM-DD"。
+        
+    Returns:
+        str: 汇总数据结果。
+    """
+    url = f"http://localhost:8080/api/stats/daily?period={period}"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            trend = response.json()
+            total_expense = sum(item.get("expense", 0) for item in trend)
+            total_income = sum(item.get("income", 0) for item in trend)
+            return f"📊 {period} 汇总：收入 ¥{total_income:.2f}，支出 ¥{total_expense:.2f}，净结余 ¥{total_income - total_expense:.2f}"
+        return f"❌ 查询失败，后端返回错误详情: {response.text}"
+    except requests.exceptions.ConnectionError:
+        return "❌ 连接失败：未检测到本地核心财务 API。请确认 Go 服务是否在 localhost:8080 挂起运行。"
+    except Exception as e:
+        return f"❌ 运行异常: {str(e)}"
+
+
+def query_category_ranking(period: str, top_n: int = 10) -> str:
+    """
+    查询指定时间段的支出分类排行。
+    
+    Args:
+        period (str): 时间跨度，格式 "YYYY", "YYYY-MM", "YYYY-MM-DD"。
+        top_n (int): 返回前 N 个分类，默认 10。
+        
+    Returns:
+        str: 分类排行结果。
+    """
+    url = f"http://localhost:8080/api/stats/category?period={period}"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if not data:
+                return f"📊 {period} 暂无支出分类数据。"
+            total = sum(item["total_amount"] for item in data)
+            display = data[:top_n]
+            medals = ["🥇", "🥈", "🥉"]
+            lines = []
+            for i, item in enumerate(display):
+                rank = medals[i] if i < 3 else f"  #{i+1}"
+                pct = item["total_amount"] / total * 100 if total > 0 else 0
+                lines.append(f"  {rank} {item['category_name']}: ¥{item['total_amount']:.2f} ({pct:.1f}%)")
+            more = f"\n  ... 共 {len(data)} 个分类" if len(data) > top_n else ""
+            return f"📊 {period} 支出分类排行（总支出 ¥{total:.2f}）:{'\n'.join(lines)}{more}"
+        return f"❌ 查询失败，后端返回错误详情: {response.text}"
+    except requests.exceptions.ConnectionError:
+        return "❌ 连接失败：未检测到本地核心财务 API。"
+    except Exception as e:
+        return f"❌ 运行异常: {str(e)}"
+
+def list_recent_transactions(period: str, category: str = "", page: int = 1, page_size: int = 20) -> str:
+    """
+    查询指定时间段的流水明细列表（包含每笔账单的 ID、分类、金额、备注）。
+    当查询月度或年度等数据量较大的时期时，可配合 page 和 page_size 参数实现翻页。
+    
+    Args:
+        period (str): 时间跨度，格式 "YYYY", "YYYY-MM", "YYYY-MM-DD"。
+        category (str): 可选，按分类筛选（如 "三餐"、"交通"）。留空则显示所有分类。
+        page (int): 请求的页码，默认为 1。
+        page_size (int): 每页包含的条目数，默认为 20。
+        
+    Returns:
+        str: 账单明细列表与分页信息。
+    """
+    url = f"http://localhost:8080/api/transactions/list?period={period}&page={page}&pageSize={page_size}"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            res_data = response.json()
+            # 兼容老版本后端可能返回纯列表的情况
+            if isinstance(res_data, list):
+                data = res_data
+                total = len(data)
+            else:
+                data = res_data.get("data", [])
+                total = res_data.get("total", 0)
+                
+            # 按分类筛选（如果后端没有实现分类过滤，我们需要在前端截断前过滤）
+            # 注意：如果后端分页了，我们在 Python 端过滤会破坏分页逻辑！
+            # 最好是后端支持 category 查询参数。如果当前不支持，我们只能在当前页中过滤。
+            if category:
+                data = [t for t in data if t.get("category_name") == category]
+            
+            if not data:
+                return f"📋 {period} (第 {page} 页) 暂无流水记录。"
+            
+            lines = []
+            for t in data:
+                sign = "+" if t.get("type") == "income" else "-"
+                lines.append(f"  #{t['id']} {t['transaction_date']} [{t['category_name']}] {sign}¥{t['amount']:.2f} 备注:{t['remark']}")
+            
+            total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
+            cat_str = f" [{category}]" if category else ""
+            return f"📋 {period}{cat_str} 流水明细（共 {total} 条，第 {page}/{total_pages} 页）:\n" + "\n".join(lines)
+        return f"❌ 查询失败，后端返回错误详情: {response.text}"
+    except requests.exceptions.ConnectionError:
+        return "❌ 连接失败：未检测到本地核心财务 API。"
+    except Exception as e:
+        return f"❌ 运行异常: {str(e)}"
