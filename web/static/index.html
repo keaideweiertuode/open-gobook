@@ -4,203 +4,311 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 财务中枢</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        /* 自定义滚动条风格 */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(2, 2, 4, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.25); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.5); }
+
+        .cyber-card {
+            background: rgba(13, 14, 25, 0.7);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .cyber-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: 0 12px 40px 0 rgba(6, 182, 212, 0.12);
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-300 font-sans p-6 min-h-screen selection:bg-cyan-500/30">
-    <!-- 充满科技感的背景光晕 -->
-    <div class="fixed inset-0 z-[-1] pointer-events-none">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-900/20 blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/20 blur-[120px]"></div>
+<body class="bg-[#04040a] text-slate-200 font-sans p-4 md:p-8 min-h-screen selection:bg-cyan-500/30 overflow-x-hidden">
+    
+    <!-- Immersive Animated Background Glows -->
+    <div class="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
+        <div class="absolute top-[-30%] left-[-20%] w-[80%] h-[80%] rounded-full bg-cyan-500/10 blur-[160px] animate-pulse" style="animation-duration: 12s;"></div>
+        <div class="absolute bottom-[-30%] right-[-20%] w-[80%] h-[80%] rounded-full bg-fuchsia-500/5 blur-[160px] animate-pulse" style="animation-duration: 18s;"></div>
+        <div class="absolute top-[40%] left-[20%] w-[50%] h-[50%] rounded-full bg-violet-600/5 blur-[140px]"></div>
     </div>
 
-    <div id="app" class="max-w-6xl mx-auto relative z-10">
+    <div id="app" class="max-w-6xl mx-auto space-y-6 relative z-10">
         
-        <!-- 全局加载遮罩 -->
-        <div v-if="loading" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex flex-col items-center justify-center transition-opacity">
+        <!-- Global Loading overlay -->
+        <div v-if="loading" class="fixed inset-0 bg-[#04040a]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center transition-all duration-300">
             <div class="relative w-16 h-16 mb-4">
                 <div class="absolute inset-0 rounded-full border-t-2 border-cyan-400 animate-spin"></div>
-                <div class="absolute inset-2 rounded-full border-r-2 border-indigo-400 animate-spin" style="animation-direction: reverse; animation-duration: 0.8s;"></div>
+                <div class="absolute inset-2 rounded-full border-r-2 border-fuchsia-500 animate-spin" style="animation-direction: reverse; animation-duration: 0.8s;"></div>
             </div>
-            <span class="text-cyan-400 font-mono text-sm shadow-cyan-500 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">数据同步中...</span>
+            <span class="text-cyan-400 font-mono text-sm tracking-widest drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">数据同步中...</span>
         </div>
 
-        <!-- 撤销删除 Toast -->
-        <div v-if="deleteQueue.size > 0" class="fixed bottom-6 right-6 bg-slate-900/90 backdrop-blur-md border border-cyan-500/30 text-cyan-50 px-5 py-4 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.15)] flex items-center gap-5 z-50 animate-pulse">
-            <span class="text-sm font-medium font-mono">已检测到: {{ deleteQueue.size }} 条记录被擦除</span>
-            <button @click="undoAllDeletes" class="text-slate-900 text-sm font-bold bg-cyan-400 hover:bg-cyan-300 px-3 py-1.5 rounded-lg transition-colors shadow-[0_0_10px_rgba(34,211,238,0.5)]">中止 (撤销)</button>
+        <!-- Undo Delete Toast -->
+        <div v-if="deleteQueue.size > 0" class="fixed bottom-6 right-6 bg-[#0d0e19]/95 backdrop-blur-md border border-cyan-500/30 text-cyan-50 px-5 py-4 rounded-xl shadow-[0_0_30px_rgba(6,182,212,0.15)] flex items-center gap-5 z-50 animate-pulse">
+            <div class="flex items-center gap-3">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                </span>
+                <span class="text-sm font-semibold tracking-wide font-mono">已检测到: {{ deleteQueue.size }} 条记录被擦除</span>
+            </div>
+            <button @click="undoAllDeletes" class="text-slate-950 text-xs font-extrabold bg-cyan-400 hover:bg-cyan-300 px-3.5 py-2 rounded-lg transition-all duration-200 shadow-md shadow-cyan-400/20 active:scale-95">
+                中止 (撤销)
+            </button>
         </div>
 
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/5 gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-white flex items-center tracking-wide">
-                    <svg class="w-7 h-7 mr-3 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+        <!-- Floating Navbar Header -->
+        <header class="cyber-card p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-cyan-500 to-indigo-500"></div>
+            <!-- Title & Subtitle -->
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-cyan-500/15">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    AI 财务中枢
-                </h1>
-                <p class="text-xs text-slate-500 mt-1 font-mono ml-10">由 OpenClaw 自动记账系统托管</p>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-indigo-300 to-fuchsia-400 tracking-wide flex items-center">
+                        AI 财务中枢
+                    </h1>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        <p class="text-[10px] text-slate-500 font-mono">由 OpenClaw 自动记账系统托管</p>
+                    </div>
+                </div>
             </div>
-            
-            <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-950/50 p-2 rounded-xl border border-white/5 w-full md:w-auto">
-                <div class="flex bg-slate-800/50 p-1 rounded-lg w-full sm:w-auto border border-white/5">
-                    <button @click="changeViewMode('day')" :class="viewMode === 'day' ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)] border border-cyan-500/50 font-bold' : 'text-slate-400 hover:text-slate-200 border border-transparent'" class="px-5 py-1.5 text-sm rounded-md transition-all duration-300 flex-1 sm:flex-none">日</button>
-                    <button @click="changeViewMode('month')" :class="viewMode === 'month' ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)] border border-cyan-500/50 font-bold' : 'text-slate-400 hover:text-slate-200 border border-transparent'" class="px-5 py-1.5 text-sm rounded-md transition-all duration-300 flex-1 sm:flex-none">月</button>
-                    <button @click="changeViewMode('year')" :class="viewMode === 'year' ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)] border border-cyan-500/50 font-bold' : 'text-slate-400 hover:text-slate-200 border border-transparent'" class="px-5 py-1.5 text-sm rounded-md transition-all duration-300 flex-1 sm:flex-none">年</button>
+
+            <!-- Controls -->
+            <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-950/60 p-2 rounded-xl border border-white/5 w-full lg:w-auto">
+                <div class="flex bg-slate-900 rounded-lg p-0.5 border border-white/5 w-full sm:w-auto">
+                    <button @click="changeViewMode('day')" :class="viewMode === 'day' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-semibold shadow-inner' : 'text-slate-400 hover:text-slate-200 border-transparent'" class="px-5 py-1.5 text-xs rounded-md transition-all duration-300 flex-1 sm:flex-none border">日</button>
+                    <button @click="changeViewMode('month')" :class="viewMode === 'month' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-semibold shadow-inner' : 'text-slate-400 hover:text-slate-200 border-transparent'" class="px-5 py-1.5 text-xs rounded-md transition-all duration-300 flex-1 sm:flex-none border">月</button>
+                    <button @click="changeViewMode('year')" :class="viewMode === 'year' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-semibold shadow-inner' : 'text-slate-400 hover:text-slate-200 border-transparent'" class="px-5 py-1.5 text-xs rounded-md transition-all duration-300 flex-1 sm:flex-none border">年</button>
                 </div>
 
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <button @click="navigate(-1)" class="px-2 py-1 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 bg-slate-900/50 border border-white/10 rounded-lg transition-colors font-mono" title="前移">&lt;</button>
-                    <button @click="navigate(0)" class="px-3 py-1.5 text-xs text-slate-300 hover:text-cyan-400 hover:bg-slate-800 bg-slate-900/50 border border-white/10 rounded-lg font-medium transition-colors" title="同步至当前时间">现在</button>
-                    <button @click="navigate(1)" class="px-2 py-1 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 bg-slate-900/50 border border-white/10 rounded-lg transition-colors font-mono" title="后移">&gt;</button>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <div class="flex items-center bg-slate-900 border border-white/5 rounded-lg p-0.5">
+                        <button @click="navigate(-1)" class="px-2.5 py-1 text-slate-400 hover:text-cyan-400 transition-colors font-mono text-xs" title="前移">&lt;</button>
+                        <button @click="navigate(0)" class="px-3 py-1 text-[10px] text-slate-300 hover:text-cyan-400 font-medium transition-colors border-x border-white/5" title="同步至当前时间">现在</button>
+                        <button @click="navigate(1)" class="px-2.5 py-1 text-slate-400 hover:text-cyan-400 transition-colors font-mono text-xs" title="后移">&gt;</button>
+                    </div>
                     
-                    <select v-model="selectedYear" @change="handleYearChange" class="border border-white/10 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-cyan-500 bg-slate-900 text-cyan-100 cursor-pointer ml-2">
+                    <select v-model="selectedYear" @change="handleYearChange" class="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-cyan-100 cursor-pointer focus:outline-none focus:border-cyan-500">
                         <option v-for="y in yearsOptions" :key="y" :value="y">{{ y }}年</option>
                     </select>
-                    <select v-if="viewMode === 'day' || viewMode === 'month'" v-model="selectedMonth" @change="handleMonthChange" class="border border-white/10 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-cyan-500 bg-slate-900 text-cyan-100 cursor-pointer">
+                    <select v-if="viewMode === 'day' || viewMode === 'month'" v-model="selectedMonth" @change="handleMonthChange" class="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-cyan-100 cursor-pointer focus:outline-none focus:border-cyan-500">
                         <option v-for="m in monthsOptions" :key="m" :value="m">{{ m }}月</option>
                     </select>
-                    <select v-if="viewMode === 'day'" v-model="selectedDay" @change="handleDayChange" class="border border-white/10 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-cyan-500 bg-slate-900 text-cyan-100 cursor-pointer">
+                    <select v-if="viewMode === 'day'" v-model="selectedDay" @change="handleDayChange" class="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-cyan-100 cursor-pointer focus:outline-none focus:border-cyan-500">
                         <option v-for="d in daysOptions" :key="d" :value="d">{{ d }}日</option>
                     </select>
-
-                    <button @click="exportData" class="ml-2 flex items-center gap-1 px-3 py-1.5 text-sm text-cyan-400 hover:text-cyan-200 bg-cyan-900/30 hover:bg-cyan-800/50 border border-cyan-500/30 hover:border-cyan-400 rounded-lg font-medium transition-all" title="导出当前视图的全部账单">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    
+                    <button @click="exportData" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs text-cyan-400 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400/50 rounded-lg font-medium transition-all shadow-md hover:shadow-cyan-500/5 active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         导出
                     </button>
                 </div>
             </div>
         </header>
 
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-            <div class="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-lg flex items-center justify-between group hover:border-emerald-500/30 transition-colors">
+        <!-- Stats Cards Section -->
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <!-- Total Income -->
+            <div class="cyber-card p-6 rounded-2xl flex items-center justify-between relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div>
-                    <p class="text-xs font-medium text-slate-500 tracking-wide">总收入</p>
-                    <h3 class="text-2xl font-bold text-emerald-400 mt-1 font-mono drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">¥{{ totalIncome.toFixed(2) }}</h3>
+                    <p class="text-xs font-semibold text-slate-400 tracking-wider uppercase">总收入</p>
+                    <h3 class="text-3xl font-bold text-emerald-400 mt-2 font-mono drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+                        ¥{{ totalIncome.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                    </h3>
                 </div>
-                <div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                 </div>
             </div>
-            <div class="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-lg flex items-center justify-between group hover:border-rose-500/30 transition-colors">
+
+            <!-- Total Expense -->
+            <div class="cyber-card p-6 rounded-2xl flex items-center justify-between relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div>
-                    <p class="text-xs font-medium text-slate-500 tracking-wide">总支出</p>
-                    <h3 class="text-2xl font-bold text-rose-400 mt-1 font-mono drop-shadow-[0_0_8px_rgba(251,113,133,0.4)]">¥{{ totalExpense.toFixed(2) }}</h3>
+                    <p class="text-xs font-semibold text-slate-400 tracking-wider uppercase">总支出</p>
+                    <h3 class="text-3xl font-bold text-rose-400 mt-2 font-mono drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">
+                        ¥{{ totalExpense.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                    </h3>
                 </div>
-                <div class="p-3 bg-rose-500/10 rounded-xl text-rose-400 group-hover:scale-110 transition-transform">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
+                <div class="p-3 bg-rose-500/10 text-rose-400 rounded-xl group-hover:scale-110 group-hover:bg-rose-500/20 transition-all duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"/></svg>
                 </div>
             </div>
-            <div class="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-lg flex items-center justify-between group" :class="netBalance >= 0 ? 'hover:border-cyan-500/30' : 'hover:border-rose-500/30'">
+
+            <!-- Net Balance -->
+            <div class="cyber-card p-6 rounded-2xl flex items-center justify-between relative overflow-hidden group"
+                 :class="netBalance >= 0 ? 'hover:border-cyan-500/30' : 'hover:border-rose-500/30'">
+                <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div>
-                    <p class="text-xs font-medium text-slate-500 tracking-wide">净结余 (留存资产)</p>
-                    <h3 class="text-2xl font-bold mt-1 font-mono" :class="netBalance >= 0 ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]' : 'text-rose-500'">¥{{ netBalance.toFixed(2) }}</h3>
+                    <p class="text-xs font-semibold text-slate-400 tracking-wider uppercase">净结余 (留存资产)</p>
+                    <h3 class="text-3xl font-bold mt-2 font-mono" :class="netBalance >= 0 ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]'">
+                        ¥{{ netBalance.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                    </h3>
                 </div>
-                <div class="p-3 rounded-xl group-hover:scale-110 transition-transform" :class="netBalance >= 0 ? 'bg-cyan-500/10 text-cyan-400' : 'bg-rose-500/10 text-rose-500'">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="p-3 rounded-xl group-hover:scale-110 transition-all duration-300" :class="netBalance >= 0 ? 'bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20' : 'bg-rose-500/10 text-rose-500 group-hover:bg-rose-500/20'">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
             </div>
         </section>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div class="lg:col-span-2 bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-white/5 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-[50px] -z-10"></div>
-                <h2 class="text-sm font-medium tracking-widest mb-4 text-slate-400">收支趋势分析</h2>
+        <!-- Middle Section: Visual Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Trend Chart (2 Columns Wide) -->
+            <div class="lg:col-span-2 cyber-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[50px] -z-10"></div>
+                <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+                    <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">收支趋势分析</h2>
+                    <span class="text-[10px] text-slate-600 font-mono">ECharts HUD Visualizer</span>
+                </div>
                 <div id="lineChart" style="width: 100%; height: 350px;"></div>
             </div>
-            <div class="bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-white/5 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] -z-10"></div>
-                <h2 class="text-sm font-medium tracking-widest mb-4 text-slate-400">支出分布矩阵</h2>
+
+            <!-- Distribution Chart (1 Column Wide) -->
+            <div class="cyber-card p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] -z-10"></div>
+                <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+                    <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">支出分布矩阵</h2>
+                    <span class="text-[10px] text-slate-600 font-mono">百分比分布</span>
+                </div>
                 <div id="pieChart" :style="{ display: categoryStats.length > 0 ? 'block' : 'none', width: '100%', height: '350px' }"></div>
                 <div v-show="categoryStats.length === 0" class="flex flex-col justify-center items-center h-[350px] text-slate-600">
-                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                    <span class="text-sm tracking-wide">未检测到数据</span>
+                    <svg class="w-12 h-12 mb-3 opacity-20 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                    <span class="text-xs font-medium text-slate-500">本周期内暂无支出数据分布</span>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div class="bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-white/5 h-fit relative overflow-hidden">
-                <h2 class="text-sm font-medium tracking-widest mb-6 text-slate-400">消费类目排行</h2>
-                <div v-if="categoryStats.length === 0" class="text-center text-slate-600 py-8 text-sm tracking-wide">未检测到数据</div>
-                <div class="space-y-5">
-                    <div v-for="(item, index) in categoryStats" :key="index" class="flex items-center group">
-                        <span class="w-6 text-xs font-mono" :class="index < 3 ? 'text-cyan-400 font-bold' : 'text-slate-500'">0{{ index + 1 }}</span>
-                        <span class="w-20 text-sm font-medium text-slate-300 truncate">{{ item.category_name }}</span>
-                        <div class="flex-grow mx-4 relative h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-cyan-400 rounded-full group-hover:bg-cyan-300 transition-colors shadow-[0_0_8px_rgba(34,211,238,0.8)]" :style="{ width: (item.total_amount / maxAmount * 100) + '%' }"></div>
+        <!-- Bottom Section: Category Rankings & Ledger table -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Category Rankings (1 Column Wide) -->
+            <div class="cyber-card p-6 rounded-2xl h-fit relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] -z-10"></div>
+                <div class="mb-6 border-b border-white/5 pb-2">
+                    <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">消费类目排行</h2>
+                </div>
+                
+                <div v-if="categoryStats.length === 0" class="text-center text-slate-600 py-16 text-xs tracking-wider">未检测到排行数据</div>
+                
+                <div class="space-y-4">
+                    <div v-for="(item, index) in categoryStats" :key="index" class="flex flex-col group">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-mono w-5 h-5 rounded-md flex items-center justify-center" 
+                                      :class="index < 3 ? 'bg-cyan-500/25 text-cyan-400 font-bold border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.2)]' : 'bg-slate-900 text-slate-500 border border-white/5'">
+                                    {{ index + 1 }}
+                                </span>
+                                <span class="font-medium text-slate-300">{{ item.category_name }}</span>
+                            </div>
+                            <span class="font-mono text-slate-400 font-medium">¥{{ item.total_amount.toFixed(2) }}</span>
                         </div>
-                        <span class="w-24 text-right text-sm font-mono text-slate-400">¥{{ item.total_amount.toFixed(2) }}</span>
+                        
+                        <div class="relative w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/[0.03]">
+                            <div class="absolute top-0 left-0 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" 
+                                 :class="index < 3 ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 group-hover:from-cyan-400 group-hover:to-indigo-400' : 'bg-slate-700'"
+                                 :style="{ width: (item.total_amount / maxAmount * 100) + '%' }"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-2 bg-slate-900/40 backdrop-blur-xl flex flex-col rounded-2xl shadow-lg border border-white/5 relative overflow-hidden">
-                <div class="p-6 pb-4 border-b border-white/5 flex justify-between items-center">
-                    <h2 class="text-sm font-medium tracking-widest text-slate-400">原始账单记录</h2>
-                    <span class="text-xs font-mono text-emerald-400 flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        实时同步中
-                    </span>
-                </div>
-                
-                <div v-if="transactionsList.length === 0" class="text-center text-slate-600 py-16 text-sm tracking-wide">当前区间暂无记录</div>
-                
-                <div v-else class="flex-1 overflow-x-auto">
-                    <table class="w-full min-w-[700px] text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-white/5 text-slate-500 text-xs font-mono tracking-widest bg-slate-800/30">
-                                <th class="pl-6 py-3 font-medium">ID</th>
-                                <th class="py-3 font-medium">时间戳</th>
-                                <th class="py-3 font-medium">类别</th>
-                                <th class="py-3 font-medium">备注</th>
-                                <th class="py-3 font-medium text-right">金额</th>
-                                <th class="pr-6 py-3 font-medium text-center">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5 text-sm text-slate-300">
-                            <tr v-for="tx in paginatedList" :key="tx.id" class="hover:bg-slate-800/60 transition-colors">
-                                <td class="pl-6 py-3 font-mono text-xs text-slate-500">#{{ tx.id }}</td>
-                                <td class="py-3 text-slate-400 font-mono text-xs">{{ tx.transaction_date.split('T')[0] }}</td>
-                                <td class="py-3">
-                                    <span :class="tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800/80 text-slate-300 border-slate-700'" class="px-2 py-0.5 rounded text-xs font-medium border">
-                                        {{ tx.category_name }}
-                                    </span>
-                                </td>
-                                <td class="py-3 truncate max-w-[150px] text-slate-400 text-xs" :title="tx.remark">{{ tx.remark }}</td>
-                                <td :class="tx.type === 'income' ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-slate-200'" class="py-3 text-right font-medium font-mono">
-                                    {{ tx.type === 'income' ? '+' : '-' }}¥{{ tx.amount.toFixed(2) }}
-                                </td>
-                                <td class="pr-6 py-3 text-center">
-                                    <button @click="deleteItem(tx.id)" class="text-rose-500 hover:text-rose-300 p-1 rounded hover:bg-rose-500/20 transition-colors" title="擦除记录">
-                                        <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- Ledger Table (2 Columns Wide) -->
+            <div class="lg:col-span-2 cyber-card flex flex-col rounded-2xl relative overflow-hidden justify-between">
+                <div>
+                    <div class="p-6 pb-4 border-b border-white/5 flex justify-between items-center">
+                        <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">原始账单记录</h2>
+                        <span class="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            同步连接就绪
+                        </span>
+                    </div>
+                    
+                    <div v-if="transactionsList.length === 0" class="text-center text-slate-600 py-24 text-xs tracking-wider flex flex-col items-center justify-center gap-3">
+                        <svg class="w-8 h-8 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>当前过滤区间内暂无账单流水记录</span>
+                    </div>
+                    
+                    <div v-else class="overflow-x-auto">
+                        <table class="w-full min-w-[700px] text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-white/5 text-slate-400 text-xs font-mono tracking-widest bg-slate-950/50">
+                                    <th class="pl-6 py-4 font-semibold">编号</th>
+                                    <th class="py-4 font-semibold">交易时间</th>
+                                    <th class="py-4 font-semibold">科目分类</th>
+                                    <th class="py-4 font-semibold">账单备注</th>
+                                    <th class="py-4 font-semibold text-right">入账金额</th>
+                                    <th class="pr-6 py-4 font-semibold text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5 text-xs text-slate-300">
+                                <tr v-for="tx in paginatedList" :key="tx.id" class="hover:bg-white/[0.02] transition-colors group">
+                                    <td class="pl-6 py-3.5 font-mono text-slate-500">#{{ tx.id }}</td>
+                                    <td class="py-3.5 text-slate-400 font-mono">{{ tx.transaction_date.split('T')[0] }}</td>
+                                    <td class="py-3.5">
+                                        <span :class="tx.type === 'income' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/20' : 'bg-slate-950/80 text-slate-300 border-slate-700'" class="px-2 py-0.5 rounded border text-[10px] font-mono">
+                                            {{ tx.category_name }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3.5 truncate max-w-[200px] text-slate-400" :title="tx.remark">{{ tx.remark }}</td>
+                                    <td :class="tx.type === 'income' ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]' : 'text-slate-200'" class="py-3.5 text-right font-semibold font-mono text-sm">
+                                        {{ tx.type === 'income' ? '+' : '-' }}¥{{ tx.amount.toFixed(2) }}
+                                    </td>
+                                    <td class="pr-6 py-3.5 text-center">
+                                        <button @click="deleteItem(tx.id)" class="text-rose-500 hover:text-rose-300 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors opacity-40 group-hover:opacity-100" title="擦除记录">
+                                            <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <div v-if="totalPages > 1" class="flex justify-between items-center px-6 py-4 border-t border-white/5 bg-slate-900/80 rounded-b-2xl">
-                    <span class="text-xs text-slate-500 font-mono tracking-wider">
-                        当前第 {{ currentPage }} 页，共 {{ totalPages }} 页 / 总计: {{ transactionsList.length }} 条记录
+                <!-- Pagination footer -->
+                <div v-if="totalPages > 1" class="flex justify-between items-center px-6 py-4 border-t border-white/5 bg-slate-950/30 rounded-b-2xl text-xs">
+                    <span class="text-slate-500 font-mono">
+                        当前第 {{ currentPage }} 页 / 共 {{ totalPages }} 页，累计筛选 {{ transactionsList.length }} 条流水
                     </span>
                     <div class="flex space-x-2">
-                        <button @click="currentPage--" :disabled="currentPage === 1" class="px-3 py-1 text-xs font-mono border border-white/10 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all">上一页</button>
-                        <button @click="currentPage++" :disabled="currentPage === totalPages" class="px-3 py-1 text-xs font-mono border border-white/10 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all">下一页</button>
+                        <button @click="currentPage--" :disabled="currentPage === 1" class="px-3.5 py-1.5 font-mono border border-white/10 rounded-xl bg-slate-950 text-slate-300 hover:bg-[#0d0e19] hover:text-cyan-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95">上一页</button>
+                        <button @click="currentPage++" :disabled="currentPage === totalPages" class="px-3.5 py-1.5 font-mono border border-white/10 rounded-xl bg-slate-950 text-slate-300 hover:bg-[#0d0e19] hover:text-cyan-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95">下一页</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Vue Setup Logic -->
     <script type="module">
         import { createApp, ref, onMounted, computed, nextTick } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
 
@@ -285,7 +393,24 @@
                     fetchData()
                 }
 
+                const commitPendingDeletes = async () => {
+                    if (deleteQueue.value.size === 0) return
+                    
+                    const idsToDel = Array.from(deleteQueue.value)
+                    deleteQueue.value.clear()
+                    deletedItemsBackup.value.clear()
+                    
+                    const promises = idsToDel.map(id => 
+                        fetch(`/api/transactions/delete?id=${id}`, { 
+                            method: 'POST',
+                            keepalive: true 
+                        }).catch(e => console.error("物理删除失败:", e))
+                    )
+                    await Promise.all(promises)
+                }
+
                 const fetchData = async () => {
+                    await commitPendingDeletes()
                     loading.value = true
                     let targetPeriod = `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`
                     if (viewMode.value === 'month') targetPeriod = `${selectedYear.value}-${selectedMonth.value}`
@@ -342,7 +467,8 @@
                     }, 5000)
                 }
 
-                const exportData = () => {
+                const exportData = async () => {
+                    await commitPendingDeletes()
                     let targetPeriod = `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`
                     if (viewMode.value === 'month') targetPeriod = `${selectedYear.value}-${selectedMonth.value}`
                     if (viewMode.value === 'year') targetPeriod = selectedYear.value
@@ -386,23 +512,58 @@
 
                     lineChartInstance.setOption({
                         backgroundColor: 'transparent',
+                        textStyle: { fontFamily: 'Space Grotesk, sans-serif' },
                         tooltip: { 
                             trigger: 'axis',
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                            textStyle: { color: '#cbd5e1' }
+                            backgroundColor: 'rgba(13, 14, 25, 0.95)',
+                            borderColor: 'rgba(255, 255, 255, 0.08)',
+                            textStyle: { color: '#e2e8f0' }
                         },
                         legend: { data: ['支出', '收入'], bottom: 0, textStyle: { color: '#94a3b8' } },
                         xAxis: { 
                             type: 'category', 
                             data: xAxisData,
-                            axisLine: { lineStyle: { color: '#334155' } },
+                            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
                             axisLabel: { color: '#64748b', interval: viewMode.value === 'month' ? 2 : (viewMode.value === 'day' ? 1 : 0), fontFamily: 'monospace' }
                         },
-                        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed', color: '#1e293b' } }, axisLabel: { color: '#64748b', fontFamily: 'monospace' } },
+                        yAxis: { 
+                            type: 'value', 
+                            splitLine: { lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.05)' } }, 
+                            axisLabel: { color: '#64748b', fontFamily: 'monospace' } 
+                        },
                         series: [
-                            { name: '支出', data: expenseData, type: 'bar', barMaxWidth: 15, itemStyle: { color: '#fb7185', borderRadius: [4, 4, 0, 0] } },
-                            { name: '收入', data: incomeData, type: 'bar', barMaxWidth: 15, itemStyle: { color: '#34d399', borderRadius: [4, 4, 0, 0] } }
+                            { 
+                                name: '支出', 
+                                data: expenseData, 
+                                type: 'bar', 
+                                barMaxWidth: 12, 
+                                itemStyle: { 
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: '#f43f5e' },
+                                        { offset: 1, color: '#be123c' }
+                                    ]),
+                                    borderRadius: [3, 3, 0, 0],
+                                    shadowBlur: 8,
+                                    shadowColor: 'rgba(244,63,94,0.35)',
+                                    shadowOffsetY: -2
+                                } 
+                            },
+                            { 
+                                name: '收入', 
+                                data: incomeData, 
+                                type: 'bar', 
+                                barMaxWidth: 12, 
+                                itemStyle: { 
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: '#10b981' },
+                                        { offset: 1, color: '#047857' }
+                                    ]),
+                                    borderRadius: [3, 3, 0, 0],
+                                    shadowBlur: 8,
+                                    shadowColor: 'rgba(16,185,129,0.35)',
+                                    shadowOffsetY: -2
+                                } 
+                            }
                         ]
                     }, { notMerge: true })
 
@@ -411,17 +572,19 @@
                         const pieData = categoryStats.value.map(item => ({ name: item.category_name, value: item.total_amount }))
                         pieChartInstance.setOption({
                             backgroundColor: 'transparent',
+                            textStyle: { fontFamily: 'Space Grotesk, sans-serif' },
+                            color: ['#6366f1', '#06b6d4', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6', '#ec4899', '#3b82f6', '#14b8a6', '#10b981'],
                             tooltip: { 
                                 trigger: 'item', 
                                 formatter: '{b}: ¥{c} ({d}%)',
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                borderColor: 'rgba(255, 255, 255, 0.1)',
-                                textStyle: { color: '#cbd5e1' }
+                                backgroundColor: 'rgba(13, 14, 25, 0.95)',
+                                borderColor: 'rgba(255, 255, 255, 0.08)',
+                                textStyle: { color: '#e2e8f0' }
                             },
                             series: [{
                                 type: 'pie',
-                                radius: ['40%', '70%'],
-                                itemStyle: { borderRadius: 5, borderColor: '#0f172a', borderWidth: 2 },
+                                radius: ['45%', '70%'],
+                                itemStyle: { borderRadius: 8, borderColor: '#04040a', borderWidth: 2 },
                                 data: pieData
                             }]
                         }, { notMerge: true })
@@ -434,6 +597,16 @@
                     await fetchYears()
                     fetchData()
                     window.addEventListener('resize', () => { lineChartInstance?.resize(); pieChartInstance?.resize() })
+                    window.addEventListener('beforeunload', () => {
+                        if (deleteQueue.value.size > 0) {
+                            deleteQueue.value.forEach(id => {
+                                fetch(`/api/transactions/delete?id=${id}`, { 
+                                    method: 'POST', 
+                                    keepalive: true 
+                                })
+                            })
+                        }
+                    })
                 })
 
                 return { 

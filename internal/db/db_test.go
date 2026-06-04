@@ -65,12 +65,15 @@ func TestTransactionCRUD(t *testing.T) {
 
 	// 2. 查询账单 (Read)
 	today := time.Now().Format("2006-01-02")
-	list, err := QueryTransactions(today)
+	list, total, err := QueryTransactions(today, "", 1, 10)
 	if err != nil {
 		t.Fatalf("Failed to query transactions: %v", err)
 	}
+	if total != 1 {
+		t.Fatalf("Expected total count 1, got %d", total)
+	}
 	if len(list) != 1 {
-		t.Fatalf("Expected 1 transaction, got %d", len(list))
+		t.Fatalf("Expected 1 transaction in list, got %d", len(list))
 	}
 
 	if list[0].Amount != 15.5 {
