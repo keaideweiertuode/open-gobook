@@ -51,19 +51,42 @@ def delete_financial_transaction_by_id(transaction_id: int) -> str:
     Returns:
         str: 后端核心存储系统执行物理擦除的结果回执。
     """
-    # 映射最新的物理删除 API 路由
     url = f"http://localhost:8080/api/transactions/delete?id={transaction_id}"
     
     try:
         response = requests.post(url, timeout=5)
         if response.status_code == 200:
-            return f"✅ 物理擦除成功！账单编号 #{transaction_id} 已彻底从本地 SQLite 数据库中抹除，Web UI 看板已同步更新。"
+            return f"✅ 擦除成功！账单编号 #{transaction_id} 已移入回收站（软删除），Web UI 看板已同步更新。如果属于误删，可随时通过 recover_financial_transaction_by_id 进行恢复。"
         else:
             return f"❌ 擦除失败，后端返回错误详情: {response.text}"
     except requests.exceptions.ConnectionError:
         return "❌ 连接失败：未检测到本地核心财务 API。请确认 Go 服务是否在 localhost:8080 挂起运行。"
     except Exception as e:
         return f"❌ 运行异常：执行删除工具时发生错误: {str(e)}"
+
+def recover_financial_transaction_by_id(transaction_id: int) -> str:
+    """
+    当用户想要撤销删除、找回或恢复一笔被误删的账单记录时，调用此工具。
+    由于系统采用了安全的软删除机制，最近删除的账单可以被完美恢复。
+    
+    Args:
+        transaction_id (int): 要恢复的账单唯一 ID（必须是正整数数字，例如: 12, 105）。
+                              
+    Returns:
+        str: 后端核心存储系统执行恢复的结果回执。
+    """
+    url = f"http://localhost:8080/api/transactions/recover?id={transaction_id}"
+    
+    try:
+        response = requests.post(url, timeout=5)
+        if response.status_code == 200:
+            return f"✅ 恢复成功！账单编号 #{transaction_id} 已从回收站中找回，并重新在 Web UI 看板中显示。"
+        else:
+            return f"❌ 恢复失败，可能该 ID 不存在于回收站中。后端返回: {response.text}"
+    except requests.exceptions.ConnectionError:
+        return "❌ 连接失败：未检测到本地核心财务 API。请确认 Go 服务是否在 localhost:8080 挂起运行。"
+    except Exception as e:
+        return f"❌ 运行异常：执行恢复工具时发生错误: {str(e)}"
 
 def export_financial_data(period: str = "") -> str:
     """

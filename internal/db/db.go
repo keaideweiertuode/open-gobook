@@ -51,7 +51,8 @@ func InitDB(dbPath string) error {
 			transaction_date DATE NOT NULL,
 			raw_text TEXT,
 			remark TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			deleted_at DATETIME
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(transaction_date);`,
 		`CREATE INDEX IF NOT EXISTS idx_tx_category ON transactions(category_id);`,
@@ -62,6 +63,8 @@ func InitDB(dbPath string) error {
 			return fmt.Errorf("建表失败: %w", err)
 		}
 	}
+
+	_, _ = db.Exec("ALTER TABLE transactions ADD COLUMN deleted_at DATETIME")
 
 	initDefaultData()
 	return nil
@@ -102,7 +105,7 @@ func SaveTransaction(tx *models.Transaction) error {
 
 // 【新增】根据主键 ID 瞬间抹除单条账单记录
 func DeleteTransaction(id int) error {
-	result, err := db.Exec("DELETE FROM transactions WHERE id = ?", id)
+	result, err := db.Exec("UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL", id)
 	if err != nil {
 		return err
 	}
@@ -112,6 +115,22 @@ func DeleteTransaction(id int) error {
 	}
 	if rows == 0 {
 		return fmt.Errorf("账单 ID [%d] 不存在", id)
+	}
+	return nil
+}
+
+// 【新增】恢复被软删除的记录
+func RecoverTransaction(id int) error {
+	result, err := db.Exec("UPDATE transactions SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL", id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("回收站中找不到账单 ID [%d]", id)
 	}
 	return nil
 }
@@ -126,31 +145,31 @@ func QueryTransactions(period, category string, page, pageSize int) ([]models.Tr
 	var countArgs []any
 
 	if len(period) == 10 {
-		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.transaction_date = ?`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.transaction_date = ? AND t.deleted_at IS NULL`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE t.transaction_date = ?`
+				 WHERE t.transaction_date = ? AND t.deleted_at IS NULL`
 		args = append(args, period)
 		countArgs = append(countArgs, period)
 	} else if len(period) == 7 {
-		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE strftime('%Y-%m', t.transaction_date) = ?`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE strftime('%Y-%m', t.transaction_date) = ? AND t.deleted_at IS NULL`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE strftime('%Y-%m', t.transaction_date) = ?`
+				 WHERE strftime('%Y-%m', t.transaction_date) = ? AND t.deleted_at IS NULL`
 		args = append(args, period)
 		countArgs = append(countArgs, period)
 	} else if len(period) == 4 {
-		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE strftime('%Y', t.transaction_date) = ?`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE strftime('%Y', t.transaction_date) = ? AND t.deleted_at IS NULL`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE strftime('%Y', t.transaction_date) = ?`
+				 WHERE strftime('%Y', t.transaction_date) = ? AND t.deleted_at IS NULL`
 		args = append(args, period)
 		countArgs = append(countArgs, period)
 	} else {
-		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE 1=1`
+		countQuery = `SELECT count(*) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.deleted_at IS NULL`
 		query = `SELECT t.id, t.amount, t.type, c.name, t.transaction_date, t.remark 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE 1=1`
+				 WHERE t.deleted_at IS NULL`
 	}
 
 	if category != "" {
@@ -212,7 +231,7 @@ func QueryTrendStats(period string) ([]models.TrendStat, error) {
 		query = `SELECT strftime('%H', created_at, 'localtime') || '点' AS date,
 					ROUND(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 2) AS expense,
 					ROUND(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 2) AS income
-				 FROM transactions WHERE transaction_date = ?
+				 FROM transactions WHERE transaction_date = ? AND deleted_at IS NULL
 				 GROUP BY strftime('%H', created_at, 'localtime') ORDER BY date ASC`
 	} else if len(period) == 7 {
 		// 按月复盘
@@ -220,14 +239,14 @@ func QueryTrendStats(period string) ([]models.TrendStat, error) {
 		query = `SELECT strftime('%Y-%m-%d', transaction_date) AS date,
 					ROUND(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 2) AS expense,
 					ROUND(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 2) AS income
-				 FROM transactions WHERE strftime('%Y-%m', transaction_date) = ?
+				 FROM transactions WHERE strftime('%Y-%m', transaction_date) = ? AND deleted_at IS NULL
 				 GROUP BY strftime('%Y-%m-%d', transaction_date) ORDER BY date ASC`
 	} else {
 		// 按年复盘
 		query = `SELECT strftime('%Y-%m', transaction_date) AS date,
 					ROUND(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 2) AS expense,
 					ROUND(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 2) AS income
-				 FROM transactions WHERE strftime('%Y', transaction_date) = ?
+				 FROM transactions WHERE strftime('%Y', transaction_date) = ? AND deleted_at IS NULL
 				 GROUP BY strftime('%Y-%m', transaction_date) ORDER BY date ASC`
 	}
 
@@ -253,17 +272,17 @@ func QueryCategoryStats(period string) ([]models.CategoryStat, error) {
 	if len(period) == 10 {
 		query = `SELECT c.name, ROUND(SUM(t.amount), 2) as total 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE t.type = 'expense' AND t.transaction_date = ? 
+				 WHERE t.type = 'expense' AND t.transaction_date = ? AND t.deleted_at IS NULL
 				 GROUP BY t.category_id ORDER BY total DESC`
 	} else if len(period) == 7 {
 		query = `SELECT c.name, ROUND(SUM(t.amount), 2) as total 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE t.type = 'expense' AND strftime('%Y-%m', t.transaction_date) = ? 
+				 WHERE t.type = 'expense' AND strftime('%Y-%m', t.transaction_date) = ? AND t.deleted_at IS NULL
 				 GROUP BY t.category_id ORDER BY total DESC`
 	} else {
 		query = `SELECT c.name, ROUND(SUM(t.amount), 2) as total 
 				 FROM transactions t JOIN categories c ON t.category_id = c.id 
-				 WHERE t.type = 'expense' AND strftime('%Y', t.transaction_date) = ? 
+				 WHERE t.type = 'expense' AND strftime('%Y', t.transaction_date) = ? AND t.deleted_at IS NULL
 				 GROUP BY t.category_id ORDER BY total DESC`
 	}
 	rows, err := db.Query(query, period)
@@ -279,7 +298,7 @@ func QueryCategoryStats(period string) ([]models.CategoryStat, error) {
 }
 
 func QueryAvailableYears() ([]string, error) {
-	query := `SELECT DISTINCT strftime('%Y', transaction_date) AS year FROM transactions UNION SELECT strftime('%Y', 'now') ORDER BY year ASC`
+	query := `SELECT DISTINCT strftime('%Y', transaction_date) AS year FROM transactions WHERE deleted_at IS NULL UNION SELECT strftime('%Y', 'now') ORDER BY year ASC`
 	rows, err := db.Query(query)
 	if err != nil { return nil, err }
 	defer rows.Close()

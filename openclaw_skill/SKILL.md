@@ -240,7 +240,8 @@ cd /home/ian/vscode/Go/gobook && ./gobook <描述词> <金额>
 |------|-----------|-----------|
 | **记账（支出）** | "花了XX钱"、"今天XX花了XX"、"打车用了XX"、**"商品名+数字"** | `record_financial_transaction` |
 | **记账（收入）** | "发工资了"、"到账了XX"、"收到了XX钱"、"入账" | `record_financial_transaction` |
-| **删除/擦除** | "删掉"、"#15那笔删了"、"擦除"、"撤销账单" | `delete_financial_transaction_by_id` |
+| **删除/擦除** | "删掉"、"#15那笔删了"、"擦除"、"作废账单" | `delete_financial_transaction_by_id` |
+| **恢复/撤销删除** | "恢复刚刚删掉的"、"把#15那笔找回来" | `recover_financial_transaction_by_id` |
 | **数据导出** | "导出本月账单"、"把账单备份成CSV"、"帮我下载明细" | `export_financial_data` |
 | **查账/统计** | "这个月花了多少"、"上个月支出"、"本月结余" | `query_financial_summary` |
 | **查明细** | "看看今天的流水"、"上个月的明细"、"列表" | `list_recent_transactions` |

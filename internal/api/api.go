@@ -39,10 +39,11 @@ func StartWebServer() {
 	http.HandleFunc("POST /api/transactions", handleCreateTransaction)
 	http.HandleFunc("GET /api/stats/years", handleAvailableYears) 
 	
-	// 【新增】流水明细与物理删除接口
+	// 【新增】流水明细与物理/软删除及恢复接口
 	http.HandleFunc("GET /api/transactions/list", handleListTransactions)
 	http.HandleFunc("POST /api/transactions/delete", handleDeleteTransaction)
 	http.HandleFunc("DELETE /api/transactions/delete", handleDeleteTransaction)
+	http.HandleFunc("POST /api/transactions/recover", handleRecoverTransaction)
 
 	// 【新增】数据导出接口
 	http.HandleFunc("GET /api/export", handleExport)
@@ -96,7 +97,7 @@ func handleListTransactions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 【新增】处理物理删除路由 (支持 DELETE 和 POST 方法)
+// 【新增】处理软删除路由 (支持 DELETE 和 POST 方法)
 func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
@@ -112,6 +113,24 @@ func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status":"success","message":"账单删除成功"}`))
+}
+
+// 【新增】处理恢复软删除的路由
+func handleRecoverTransaction(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		jsonError(w, http.StatusBadRequest, "无效的账单 ID")
+		return
+	}
+
+	if err := db.RecoverTransaction(id); err != nil {
+		jsonError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"status":"success","message":"账单已从回收站恢复"}`))
 }
 
 type CreateTxRequest struct {
