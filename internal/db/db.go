@@ -84,13 +84,13 @@ func initDefaultData() {
 	expenseCategories := []string{
 		"三餐", "零食", "衣服", "交通", "旅行", "孩子", "宠物", "话费网费", "烟酒", "学习",
 		"日用品", "住房", "美妆", "医疗", "发红包", "汽车", "娱乐", "请客送礼", "电器数码", "运动",
-		"其它", "水电煤", "办公",
+		"其它", "水电煤", "办公", "借出", "还款",
 	}
 	for _, cat := range expenseCategories {
 		_, _ = db.Exec("INSERT OR IGNORE INTO categories (name, type) VALUES (?, 'expense')", cat)
 	}
 
-	incomeCategories := []string{"工资", "生活费", "收红包", "股票基金", "其他"}
+	incomeCategories := []string{"工资", "生活费", "收红包", "股票基金", "借入", "收回", "其他"}
 	for _, cat := range incomeCategories {
 		_, _ = db.Exec("INSERT OR IGNORE INTO categories (name, type) VALUES (?, 'income')", cat)
 	}
