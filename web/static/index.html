@@ -224,32 +224,76 @@
 
         <!-- Bottom Section: Category Rankings & Ledger table -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Category Rankings (1 Column Wide) -->
-            <div class="cyber-card p-6 rounded-2xl h-fit relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] -z-10"></div>
-                <div class="mb-6 border-b border-white/5 pb-2">
-                    <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">消费类目排行</h2>
-                </div>
-                
-                <div v-if="categoryStats.length === 0" class="text-center text-slate-600 py-16 text-xs tracking-wider">未检测到排行数据</div>
-                
-                <div class="space-y-4">
-                    <div v-for="(item, index) in categoryStats" :key="index" class="flex flex-col group">
-                        <div class="flex items-center justify-between text-xs mb-1.5">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-mono w-5 h-5 rounded-md flex items-center justify-center" 
-                                      :class="index < 3 ? 'bg-cyan-500/25 text-cyan-400 font-bold border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.2)]' : 'bg-slate-900 text-slate-500 border border-white/5'">
-                                    {{ index + 1 }}
-                                </span>
-                                <span class="font-medium text-slate-300">{{ item.category_name }}</span>
+            <!-- Left Column: Rankings & Debt Tracker -->
+            <div class="flex flex-col gap-6">
+                <!-- Category Rankings -->
+                <div class="cyber-card p-6 rounded-2xl h-fit relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] -z-10"></div>
+                    <div class="mb-6 border-b border-white/5 pb-2">
+                        <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">消费类目排行</h2>
+                    </div>
+                    
+                    <div v-if="categoryStats.length === 0" class="text-center text-slate-600 py-16 text-xs tracking-wider">未检测到排行数据</div>
+                    
+                    <div class="space-y-4">
+                        <div v-for="(item, index) in categoryStats" :key="index" class="flex flex-col group">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-mono w-5 h-5 rounded-md flex items-center justify-center" 
+                                          :class="index < 3 ? 'bg-cyan-500/25 text-cyan-400 font-bold border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.2)]' : 'bg-slate-900 text-slate-500 border border-white/5'">
+                                        {{ index + 1 }}
+                                    </span>
+                                    <span class="font-medium text-slate-300">{{ item.category_name }}</span>
+                                </div>
+                                <span class="font-mono text-slate-400 font-medium">¥{{ item.total_amount.toFixed(2) }}</span>
                             </div>
-                            <span class="font-mono text-slate-400 font-medium">¥{{ item.total_amount.toFixed(2) }}</span>
+                            
+                            <div class="relative w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/[0.03]">
+                                <div class="absolute top-0 left-0 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" 
+                                     :class="index < 3 ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 group-hover:from-cyan-400 group-hover:to-indigo-400' : 'bg-slate-700'"
+                                     :style="{ width: (item.total_amount / maxAmount * 100) + '%' }"></div>
+                            </div>
                         </div>
-                        
-                        <div class="relative w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/[0.03]">
-                            <div class="absolute top-0 left-0 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" 
-                                 :class="index < 3 ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 group-hover:from-cyan-400 group-hover:to-indigo-400' : 'bg-slate-700'"
-                                 :style="{ width: (item.total_amount / maxAmount * 100) + '%' }"></div>
+                    </div>
+                </div>
+
+                <!-- Debt Tracker Radar -->
+                <div class="cyber-card p-6 rounded-2xl h-fit relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-[40px] -z-10"></div>
+                    <div class="mb-4 border-b border-white/5 pb-2 flex justify-between items-center">
+                        <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase">借贷/债务追踪雷达</h2>
+                        <span class="text-[10px] text-slate-600 font-mono" title="全局累计数据，不受时间维度影响">All-Time</span>
+                    </div>
+                    
+                    <div class="space-y-5">
+                        <!-- 待收债权 -->
+                        <div class="group">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span class="font-medium text-slate-300">外借待收 (债权)</span>
+                                </div>
+                                <span class="font-mono text-cyan-400 font-bold tracking-wide">¥{{ debtStats.total_receivables ? debtStats.total_receivables.toFixed(2) : '0.00' }}</span>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono px-6">
+                                <span>借出: {{ debtStats.lent_out || 0 }}</span>
+                                <span>收回: {{ debtStats.recovered || 0 }}</span>
+                            </div>
+                        </div>
+
+                        <!-- 待还债务 -->
+                        <div class="group">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    <span class="font-medium text-slate-300">我的负债 (债务)</span>
+                                </div>
+                                <span class="font-mono text-rose-500 font-bold tracking-wide">¥{{ debtStats.total_debt ? debtStats.total_debt.toFixed(2) : '0.00' }}</span>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono px-6">
+                                <span>借入: {{ debtStats.borrowed_in || 0 }}</span>
+                                <span>还款: {{ debtStats.repaid || 0 }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -339,7 +383,8 @@
                 
                 const trendStats = ref([])
                 const categoryStats = ref([])
-                const transactionsList = ref([]) 
+                const transactionsList = ref([])
+                const debtStats = ref({}) 
                 
                 const loading = ref(false)
                 const deleteQueue = ref(new Set())
@@ -431,14 +476,16 @@
                     if (viewMode.value === 'year') targetPeriod = selectedYear.value
 
                     try {
-                        const [trendRes, categoryRes, listRes] = await Promise.all([
+                        const [trendRes, categoryRes, listRes, debtRes] = await Promise.all([
                             fetch(`/api/stats/daily?period=${targetPeriod}`),
                             fetch(`/api/stats/category?period=${targetPeriod}`),
-                            fetch(`/api/transactions/list?period=${targetPeriod}`)
+                            fetch(`/api/transactions/list?period=${targetPeriod}`),
+                            fetch(`/api/stats/debt`)
                         ])
                         trendStats.value = await trendRes.json()
                         categoryStats.value = await categoryRes.json()
                         transactionsList.value = await listRes.json()
+                        debtStats.value = await debtRes.json()
                         
                         await nextTick()
                         renderCharts()

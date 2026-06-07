@@ -310,3 +310,45 @@ func QueryAvailableYears() ([]string, error) {
 	}
 	return years, nil
 }
+
+// QueryDebtStats 获取全局借贷与债权追踪数据
+func QueryDebtStats() (*models.DebtStat, error) {
+	query := `
+		SELECT 
+			c.name, 
+			ROUND(SUM(t.amount), 2) as total 
+		FROM transactions t 
+		JOIN categories c ON t.category_id = c.id 
+		WHERE t.deleted_at IS NULL AND c.name IN ('借入', '还款', '借出', '收回')
+		GROUP BY c.name
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	stat := &models.DebtStat{}
+	for rows.Next() {
+		var name string
+		var amount float64
+		if err := rows.Scan(&name, &amount); err != nil {
+			return nil, err
+		}
+		switch name {
+		case "借入":
+			stat.BorrowedIn = amount
+		case "还款":
+			stat.Repaid = amount
+		case "借出":
+			stat.LentOut = amount
+		case "收回":
+			stat.Recovered = amount
+		}
+	}
+	
+	stat.TotalDebt = stat.BorrowedIn - stat.Repaid
+	stat.TotalReceivables = stat.LentOut - stat.Recovered
+	
+	return stat, nil
+}

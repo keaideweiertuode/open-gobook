@@ -45,3 +45,13 @@ type CategoryStat struct {
 	CategoryName string  `json:"category_name"`
 	TotalAmount  float64 `json:"total_amount"`
 }
+
+// DebtStat 借贷/债权追踪结构体
+type DebtStat struct {
+	TotalDebt        float64 `json:"total_debt"`        // 我的净负债 (借入 - 还款)
+	TotalReceivables float64 `json:"total_receivables"` // 待收净债权 (借出 - 收回)
+	BorrowedIn       float64 `json:"borrowed_in"`       // 累计借入
+	Repaid           float64 `json:"repaid"`            // 累计还款
+	LentOut          float64 `json:"lent_out"`          // 累计借出
+	Recovered        float64 `json:"recovered"`         // 累计收回
+}

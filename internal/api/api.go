@@ -38,6 +38,7 @@ func StartWebServer() {
 	http.HandleFunc("GET /api/stats/category", handleCategoryStats)
 	http.HandleFunc("POST /api/transactions", handleCreateTransaction)
 	http.HandleFunc("GET /api/stats/years", handleAvailableYears) 
+	http.HandleFunc("GET /api/stats/debt", handleDebtStats) 
 	
 	// 【新增】流水明细与物理/软删除及恢复接口
 	http.HandleFunc("GET /api/transactions/list", handleListTransactions)
@@ -203,6 +204,16 @@ func handleAvailableYears(w http.ResponseWriter, r *http.Request) {
 	if err != nil { jsonError(w, http.StatusInternalServerError, "查询年份失败"); return }
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(years)
+}
+
+func handleDebtStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := db.QueryDebtStats()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "查询债权债务数据失败")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }
 
 func handleExport(w http.ResponseWriter, r *http.Request) {
