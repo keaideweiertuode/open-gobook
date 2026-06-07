@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Any
 
-def record_financial_transaction(amount: float, category: str, remark: str, raw_text: str) -> str:
+def record_financial_transaction(amount: float, category: str, remark: str, raw_text: str, date: str = "") -> str:
     """
     当你需要记录一笔本地的财务流水（无论是日常开销支出，还是工资、红包等资金收入）时，调用此工具。
     
@@ -14,6 +14,7 @@ def record_financial_transaction(amount: float, category: str, remark: str, raw_
                         【收入类】: 工资, 生活费, 收红包, 股票基金, 借入, 收回, 其他
         remark (str): 简短的备注、特定物品或商户名称（例如: "端午节发红包", "5月工资", "加油站充值", "麦当劳"）。
         raw_text (str): 用户输入的原始大白话文本，用于留痕溯源（例如: "发工资 8000" 或 "打车花分 25"）。
+        date (str): 账单发生的具体日期（例如: "2026-05-03"）。如果用户未明确提及补录日期，或表明是当下发生的，留空即可（默认今天）。
         
     Returns:
         str: 写入本地高级存储系统的同步回执状态信息。
@@ -23,7 +24,8 @@ def record_financial_transaction(amount: float, category: str, remark: str, raw_
         "amount": amount,
         "category": category,
         "remark": remark,
-        "raw_text": raw_text
+        "raw_text": raw_text,
+        "date": date
     }
     
     try:
