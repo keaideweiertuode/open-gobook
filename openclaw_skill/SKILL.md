@@ -40,8 +40,9 @@ cd /home/ian/vscode/Go/gobook && /usr/local/go/bin/go build -o gobook . && sudo 
 | **恢复账单** | "恢复刚删的"、"找回#15"、"撤销删除" | `recover_financial_transaction_by_id` |
 | **查统计** | "这个月花了多少"、"上月支出"、"结余" | `query_financial_summary` |
 | **查流水** | "看看今天的"、"上个月明细"、"流水" | `list_recent_transactions` |
-| **分类排行** | "花钱最多的是"、"消费前三"、"占比" | `query_category_ranking` |
-| **导出** | "导出账单"、"备份CSV"、"下载明细" | `export_financial_data` |
+| **查分类排行** | "花钱最多的是"、"消费前三"、"占比" | `query_category_ranking` |
+| **查借贷债务** | "我现在欠别人多少钱"、"别人总共欠我多少钱" | `query_debt_stats` |
+| **导出数据** | "导出账单"、"备份CSV"、"下载明细" | `export_financial_data` |
 
 ## 注意事项
 

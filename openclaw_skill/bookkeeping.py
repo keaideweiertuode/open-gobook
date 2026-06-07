@@ -225,3 +225,33 @@ def list_recent_transactions(period: str, category: str = "", page: int = 1, pag
         return "❌ 连接失败：未检测到本地核心财务 API。"
     except Exception as e:
         return f"❌ 运行异常: {str(e)}"
+
+def query_debt_stats() -> str:
+    """
+    当用户询问「我还欠别人多少钱」、「别人欠我多少钱」等关于整体借贷情况的问题时，调用此工具。
+    该工具不受时间维度影响，提供全局历史借贷累计数据。
+
+    Returns:
+        str: 当前所有负债和债权的统计信息。
+    """
+    url = "http://localhost:8080/api/stats/debt"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            total_debt = data.get("total_debt", 0)
+            total_receivables = data.get("total_receivables", 0)
+            borrowed_in = data.get("borrowed_in", 0)
+            repaid = data.get("repaid", 0)
+            lent_out = data.get("lent_out", 0)
+            recovered = data.get("recovered", 0)
+
+            res = ["🏦 全局借贷追踪雷达 (All-Time):"]
+            res.append(f"  🔴 我的负债 (我欠别人的): ¥{total_debt:.2f} (历史累计借入: ¥{borrowed_in:.2f}，累计还款: ¥{repaid:.2f})")
+            res.append(f"  🟢 外借待收 (别人欠我的): ¥{total_receivables:.2f} (历史累计借出: ¥{lent_out:.2f}，累计收回: ¥{recovered:.2f})")
+            return "\n".join(res)
+        return f"❌ 查询失败，后端返回错误详情: {response.text}"
+    except requests.exceptions.ConnectionError:
+        return "❌ 连接失败：未检测到本地核心财务 API。"
+    except Exception as e:
+        return f"❌ 运行异常: {str(e)}"
