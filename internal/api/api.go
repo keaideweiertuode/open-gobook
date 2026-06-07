@@ -138,6 +138,7 @@ type CreateTxRequest struct {
 	Category string  `json:"category"`
 	Remark   string  `json:"remark"`
 	RawText  string  `json:"raw_text"`
+	Date     string  `json:"date"` // 【新增】支持补录指定的日期，格式为 YYYY-MM-DD
 }
 
 func handleCreateTransaction(w http.ResponseWriter, r *http.Request) {
@@ -151,12 +152,21 @@ func handleCreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	catID, catType, _ := db.GetCategoryDetailsByName(req.Category)
+	
+	// 【新增】日期解析逻辑：如果传入了 date 参数，则尝试解析为补录日期，否则默认用当前时间
+	txDate := time.Now()
+	if req.Date != "" {
+		if parsedDate, err := time.Parse("2006-01-02", req.Date); err == nil {
+			txDate = parsedDate
+		}
+	}
+
 	tx := &models.Transaction{
 		Amount:          req.Amount,
 		Type:            catType,
 		AccountID:       1,
 		CategoryID:      catID,
-		TransactionDate: time.Now(),
+		TransactionDate: txDate,
 		RawText:         req.RawText,
 		Remark:          req.Remark,
 	}
